@@ -1,0 +1,191 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// User
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  email        String   @unique
+  passwordHash String
+  avatarUrl    String?
+  level        Int      @default(1)
+  xp           Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  catches      Catch[]
+  reactions    Reaction[]
+  achievements UserAchievement[]
+
+  // Ver Friendship: par ordenado (userAId < userBId) garante unicidade da
+  // amizade independente de quem adicionou quem.
+  friendshipsAsUserA   Friendship[] @relation("FriendshipUserA")
+  friendshipsAsUserB   Friendship[] @relation("FriendshipUserB")
+  friendshipsRequested Friendship[] @relation("FriendshipRequestedBy")
+
+  @@map("users")
+}
+
+// ---------------------------------------------------------------------------
+// Species (catálogo fixo)
+// ---------------------------------------------------------------------------
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+  EPIC
+  LEGENDARY
+}
+
+model Species {
+  id                String     @id @default(uuid())
+  name              String     @unique
+  scientificName    String?
+  difficulty        Difficulty
+  baseXp            Int
+  referenceImageUrl String?
+  description       String?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  catches Catch[]
+
+  @@map("species")
+}
+
+// ---------------------------------------------------------------------------
+// Catch
+// ---------------------------------------------------------------------------
+
+model Catch {
+  id         String   @id @default(uuid())
+  userId     String
+  speciesId  String
+  photoUrl   String
+  // Snapshot do XP concedido no momento da captura: se o baseXp da espécie
+  // mudar depois, o histórico do usuário não deve ser recalculado.
+  xpAwarded  Int
+  capturedAt DateTime
+  createdAt  DateTime @default(now())
+
+  weightGrams  Float?
+  lengthCm     Float?
+  locationLat  Float?
+  locationLng  Float?
+  locationName String?
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Restrict: não permite apagar uma espécie do catálogo se já existem
+  // capturas registradas para ela.
+  species Species @relation(fields: [speciesId], references: [id], onDelete: Restrict)
+
+  reactions Reaction[]
+
+  @@index([userId, capturedAt])
+  @@index([speciesId])
+  @@map("catches")
+}
+
+// ---------------------------------------------------------------------------
+// Friendship
+// ---------------------------------------------------------------------------
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  BLOCKED
+}
+
+model Friendship {
+  id     String @id @default(uuid())
+  // userAId/userBId sempre armazenados em ordem determinística (ex.: string
+  // comparison) na camada de serviço, para que @@unique cubra o par
+  // independente da direção do pedido (A->B e B->A são a mesma linha).
+  userAId String
+  userBId String
+
+  requestedById String
+  status        FriendshipStatus @default(PENDING)
+  createdAt     DateTime         @default(now())
+  respondedAt   DateTime?
+
+  userA       User @relation("FriendshipUserA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB       User @relation("FriendshipUserB", fields: [userBId], references: [id], onDelete: Cascade)
+  requestedBy User @relation("FriendshipRequestedBy", fields: [requestedById], references: [id], onDelete: Cascade)
+
+  @@unique([userAId, userBId])
+  @@index([userBId])
+  @@index([requestedById, status])
+  @@map("friendships")
+}
+
+// ---------------------------------------------------------------------------
+// Reaction
+// ---------------------------------------------------------------------------
+
+enum ReactionEmoji {
+  LIKE
+  LOVE
+  FIRE
+  WOW
+  CLAP
+  BIG_ONE
+}
+
+model Reaction {
+  id        String        @id @default(uuid())
+  catchId   String
+  userId    String
+  emoji     ReactionEmoji
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  catch Catch @relation(fields: [catchId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Um usuário só tem uma linha de reação por captura; trocar a reação é um
+  // update (upsert) sobre essa linha, não uma nova linha.
+  @@unique([catchId, userId])
+  @@index([catchId])
+  @@map("reactions")
+}
+
+// ---------------------------------------------------------------------------
+// Achievement (catálogo fixo)
+// ---------------------------------------------------------------------------
+
+model Achievement {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  description String?
+  iconUrl     String?
+  createdAt   DateTime @default(now())
+
+  users UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String   @id @default(uuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
+}
