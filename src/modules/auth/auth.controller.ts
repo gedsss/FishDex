@@ -22,4 +22,6 @@ export class AuthController {
 
         return reply.send({ token, user });
     }
+
+    
 }
