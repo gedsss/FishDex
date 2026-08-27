@@ -1,15 +1,19 @@
 import "dotenv/config"
 import Fastify, { FastifyReply, FastifyRequest } from 'fastify'
 import cors from '@fastify/cors'
+import { errorHandler } from "./src/middlewares/errorHandler"
 import fastifyJwt from '@fastify/jwt'
 import { authRoutes } from './src/modules/auth/auth.routes'
 import { usersRoutes } from './src/modules/users/users.routes'
 import { speciesRoutes } from './src/modules/species/species.routes'
+import sensible from '@fastify/sensible'
 
 export const app = Fastify({ logger: true })
 
 app.register(cors, { origin: true })
 app.register(fastifyJwt, { secret: process.env.JWT_SECRET as string })
+app.register(sensible)
+app.setErrorHandler(errorHandler)
 
 
 app.register(authRoutes, { prefix: '/auth' })
