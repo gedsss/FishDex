@@ -18,4 +18,13 @@ export class UserRepository {
 
     return result
   }
+
+  async updateXpAndLevel(id: string, xp: number, level: number) {
+    const user = await prisma.user.update({
+      where: { id },
+      data: { xp, level },
+    })
+
+    return user
+  }
 }
