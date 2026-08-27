@@ -1,19 +1,19 @@
-import { prisma } from "../../../prisma/prisma.client";
+import { prisma } from '../../../prisma/prisma.client'
 
 export class SpeciesRepository {
-    async getSpecies() {
-        const species = await prisma.species.findMany()
+  async getSpecies() {
+    const species = await prisma.species.findMany()
 
-        return species
-    }
+    return species
+  }
 
-    async getSpeciesById(id: string) {
-        const specie = await prisma.species.findUnique({
-            where: { id }
-        })
+  async getSpeciesById(id: string) {
+    const specie = await prisma.species.findUnique({
+      where: { id },
+    })
 
-        return specie
-    }
+    return specie
+  }
 }
 
 export const speciesRepository = new SpeciesRepository()

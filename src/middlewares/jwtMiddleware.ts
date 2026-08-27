@@ -1,5 +1,8 @@
-import { FastifyRequest, FastifyReply } from "fastify";
+import type { FastifyReply, FastifyRequest } from 'fastify'
 
-export async function authenticate(request: FastifyRequest, reply: FastifyReply) {
-    await request.jwtVerify();
+export async function authenticate(
+  request: FastifyRequest,
+  reply: FastifyReply
+) {
+  await request.jwtVerify()
 }

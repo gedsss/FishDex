@@ -1,5 +1,5 @@
 import { z } from 'zod'
 
 export const GetSpeciesByIdParamsSchema = z.object({
-    id: z.string().uuid()
+  id: z.string().uuid(),
 })
