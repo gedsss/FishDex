@@ -8,6 +8,7 @@ import { authRoutes } from './src/modules/auth/auth.routes'
 import { catchesRoutes } from './src/modules/catches/catches.routes'
 import { speciesRoutes } from './src/modules/species/species.routes'
 import { usersRoutes } from './src/modules/users/users.routes'
+import { friendshipRoutes } from './src/modules/friendships/friendships.routes'
 
 export const app = Fastify({ logger: true })
 
@@ -20,6 +21,7 @@ app.register(authRoutes, { prefix: '/auth' })
 app.register(usersRoutes, { prefix: '/users' })
 app.register(speciesRoutes, { prefix: '/species' })
 app.register(catchesRoutes, { prefix: '/catches' })
+app.register(friendshipRoutes, { prefix: '/friendships' })
 
 app.get('/', (_request: FastifyRequest, reply: FastifyReply) => {
   return reply.send({ status: 200, message: 'Server Running' })
