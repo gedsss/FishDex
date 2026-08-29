@@ -33,7 +33,8 @@
     "bcrypt@6.0.0": true,
     "prisma@7.9.1": true,
     "@prisma/engines@7.9.1": true,
-    "esbuild@0.28.2": true
+    "esbuild@0.28.2": true,
+    "core-js@2.6.12": true
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.10",
