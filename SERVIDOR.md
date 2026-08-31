@@ -33,15 +33,15 @@ Documentação de referência já existente neste diretório: `CLAUDE.md` (conte
 
 Status: parcialmente feito nesta sessão (banco e dependências no ar); falta fechar TypeScript e versionamento antes de escrever código de aplicação.
 
-- [ ] 0.1 — `git init` + primeiro commit (`.gitignore` já existe — cobre `node_modules`, `.env`, `/generated/prisma`) — **ainda não foi feito, este diretório não é um repositório git**
+- [x] 0.1 — `git init` + primeiro commit (`.gitignore` já existe — cobre `node_modules`, `.env`, `/generated/prisma`)
 - [x] 0.2 — `package.json` criado, dependências base instaladas: `fastify`, `@fastify/jwt`, `bcrypt`, `zod`, `@prisma/client@7`, `@prisma/adapter-pg`, `dotenv`; dev: `prisma@7`, `tsx`
 - [x] 0.3 — `prisma/schema.prisma` com as 7 entidades modeladas (`User`, `Species`, `Catch`, `Friendship`, `Reaction`, `Achievement`, `UserAchievement`)
 - [x] 0.4 — `docker-compose.yml` com Postgres local (porta 5433) e container no ar
 - [x] 0.5 — `prisma.config.ts`, `.env` / `.env.example`, `.gitignore`
 - [x] 0.6 — Migration `init` aplicada (`npx prisma migrate dev`) e Prisma Client gerado (`npx prisma generate`)
-- [ ] 0.7 — `tsconfig.json` + `npm install -D @types/node @types/bcrypt vitest`
-- [ ] 0.8 — Scripts no `package.json`: `"dev": "tsx watch src/server.ts"`, `"test": "vitest run"`, `"build": "tsc"`
-- [ ] 0.9 — Validar com um `src/server.ts` mínimo ("hello world" / rota `/health`) que `npm run dev` sobe sem erro
+- [x] 0.7 — `tsconfig.json` + `npm install -D @types/node @types/bcrypt vitest`
+- [x] 0.8 — Scripts no `package.json`: `"dev": "tsx watch src/server.ts"`, `"test": "vitest run"`, `"build": "tsc"`
+- [ ] 0.9 — Validar com um `src/server.ts` mínimo ("hello world" / rota `/health`) que `npm run dev` sobe sem erro — **não verificado agora** (Docker Desktop não está rodando nesta máquina no momento da checagem, sem Postgres não dá pra validar a subida real); `tsc --noEmit` passou limpo
 
 Estrutura de pastas (detalhada com responsabilidade de cada arquivo no `CLAUDE.md`):
 
@@ -152,24 +152,24 @@ Documentar essa tabela no `README.md` — é o tipo de regra que se perde fácil
 
 ### 2.1 Autenticação (`modules/auth`)
 
-- [ ] 2.1.1 — `auth.schema.ts`: `registerBodySchema`, `loginBodySchema`
-- [ ] 2.1.2 — `auth.repository.ts`: `findByEmail`, `findByUsername`, `create`
-- [ ] 2.1.3 — `auth.service.ts`: `register()` (bcrypt.hash, cria `User` com `level: 1, xp: 0`), `login()` (bcrypt.compare, `fastify.jwt.sign({ sub: user.id })`)
-- [ ] 2.1.4 — `auth.routes.ts`: `POST /auth/register`, `POST /auth/login`
-- [ ] 2.1.5 — `hooks/authenticate.ts`: preHandler reutilizável (`request.jwtVerify()`)
+- [x] 2.1.1 — `auth.schema.ts`: `registerBodySchema`, `loginBodySchema`
+- [x] 2.1.2 — `auth.repository.ts`: `findByEmail`, `findByUsername`, `create`
+- [x] 2.1.3 — `auth.service.ts`: `register()` (bcrypt.hash), `login()` (bcrypt.compare) — **nota**: o `fastify.jwt.sign` acabou implementado em `auth.controller.ts`, não no service
+- [x] 2.1.4 — `auth.routes.ts`: `POST /auth/register`, `POST /auth/login`
+- [x] 2.1.5 — preHandler reutilizável de autenticação — implementado em `src/middlewares/jwtMiddleware.ts` (não em `hooks/authenticate.ts` como o `CLAUDE.md` sugere, mas mesma função)
 - [ ] 2.1.6 — Teste: registrar → login → chamar rota protegida com o token → chamar sem token (401) → registrar com email repetido (409)
 
 ### 2.2 Motor de XP e nível
 
-- [ ] 2.2.1 — Função pura `calculateLevel(xp: number): number` em `src/modules/catches/level.ts`, com a fórmula fechada em 1.2
-- [ ] 2.2.2 — `catches.service.ts`: dentro de uma `prisma.$transaction`, cria a `Catch` com `xpAwarded = species.baseXp`, soma ao `user.xp`, recalcula `user.level` via `calculateLevel`
+- [x] 2.2.1 — Função pura `calculateLevel(xp: number): number` em `src/modules/catches/level.ts`, com a fórmula fechada em 1.2
+- [ ] 2.2.2 — `catches.service.ts`: dentro de uma `prisma.$transaction`, cria a `Catch` com `xpAwarded = species.baseXp`, soma ao `user.xp`, recalcula `user.level` via `calculateLevel` — **implementado só parcialmente**: `xpAwarded`, soma de `xp` e recálculo de `level` via `calculateLevel` já funcionam, mas `create` da `Catch` e `update` do `User` são duas chamadas Prisma separadas, sem `$transaction` — falta a atomicidade
 - [ ] 2.2.3 — Teste unitário de `calculateLevel` cobrindo: XP zero, XP exato num limiar, XP suficiente para subir mais de um nível de uma vez
 - [ ] 2.2.4 — Teste de integração: `POST /catches` reflete corretamente em `GET /users/me` (xp e level atualizados)
 
 ### 2.3 Unicidade e concorrência
 
-- [ ] 2.3.1 — `friendships.repository.ts`: helper `sortPair(idA, idB)` — ordena deterministicamente antes de qualquer `create`/`findUnique`
-- [ ] 2.3.2 — Confiar na constraint `@@unique` do banco como segunda linha de defesa (não só checagem em memória) — capturar o erro Prisma `P2002` no service e traduzir para 409
+- [x] 2.3.1 — `friendships.repository.ts`: helper `sortPair(idA, idB)` — ordena deterministicamente antes de qualquer `create`/`findUnique`
+- [x] 2.3.2 — Confiar na constraint `@@unique` do banco como segunda linha de defesa (não só checagem em memória) — capturar o erro Prisma `P2002` no service e traduzir para 409
 - [ ] 2.3.3 — Teste: duas requisições "quase simultâneas" de pedido de amizade para o mesmo par → só uma linha no banco, segunda retorna 409
 
 ---
@@ -178,22 +178,22 @@ Documentar essa tabela no `README.md` — é o tipo de regra que se perde fácil
 
 ### 3.1 Usuários e catálogo (`modules/users`, `modules/species`)
 
-- [ ] 3.1.1 — `users.repository.ts`: `findById`, `countCatchesBySpecies(userId)` (Pokédex pessoal via `GROUP BY`, sem tabela denormalizada)
-- [ ] 3.1.2 — `users.service.ts`: `toPublicUser()` (remove `passwordHash`), `getProfile(userId)` juntando nível + conquistas + capturas por espécie
-- [ ] 3.1.3 — `users.routes.ts`: `GET /users/me`, `GET /users/:id`
-- [ ] 3.1.4 — `species.repository/service/routes`: `GET /species`, `GET /species/:id` (rotas públicas)
+- [x] 3.1.1 — `users.repository.ts`: `findById`, `countCatchesBySpecies(userId)` (Pokédex pessoal via `GROUP BY`, sem tabela denormalizada)
+- [ ] 3.1.2 — `users.service.ts`: `toPublicUser()` (remove `passwordHash`), `getProfile(userId)` juntando nível + conquistas + capturas por espécie — `getProfile` existe e já não vaza `passwordHash` (monta o objeto de resposta campo a campo), mas não há um `toPublicUser()` reutilizável nem junção com conquistas (módulo de conquistas ainda não existe)
+- [x] 3.1.3 — `users.routes.ts`: `GET /users/me`, `GET /users/:id`
+- [x] 3.1.4 — `species.repository/service/routes`: `GET /species`, `GET /species/:id` (rotas públicas)
 - [ ] 3.1.5 — Rodar `prisma db seed`, testar catálogo e perfil populados
 
 ### 3.2 Amizades (`modules/friendships`)
 
-- [ ] 3.2.1 — `friendships.service.ts`: `sendRequest` (usa `sortPair`, `requestedById = quem chama`), `accept`/`block` (valida que quem chama **não** é `requestedById` — senão 403)
-- [ ] 3.2.2 — `friendships.routes.ts`: `POST /friendships`, `PATCH /friendships/:id/accept`, `PATCH /friendships/:id/block`, `GET /friendships`
+- [x] 3.2.1 — `friendships.service.ts`: `sendRequest` (usa `sortPair`, `requestedById = quem chama`), `accept`/`block` (valida que quem chama **não** é `requestedById` — senão 403)
+- [ ] 3.2.2 — `friendships.routes.ts`: `POST /friendships`, `PATCH /friendships/:id/accept`, `PATCH /friendships/:id/block`, `GET /friendships` — **rotas existem mas faltam o `preHandler: authenticate`**; o controller lê `request.user.sub` assumindo que o JWT já foi verificado, então hoje essas 4 rotas quebram (erro ao ler `.sub` de `undefined`) em vez de retornar 401
 - [ ] 3.2.3 — Teste: A pede a B → B tenta aceitar o próprio pedido (403) → A tenta aceitar (403, A não é o destinatário) → B aceita (200) → `GET /friendships` reflete em ambos
 
 ### 3.3 Feed
 
-- [ ] 3.3.1 — `feed.service.ts`: busca amigos com `status: ACCEPTED`, depois `Catch.findMany` filtrando por esses `userId`, ordenado por `capturedAt desc`, paginação por cursor composto (`capturedAt`, `id`)
-- [ ] 3.3.2 — `feed.routes.ts`: `GET /feed` (query params `cursor`, `limit`)
+- [ ] 3.3.1 — `feed.service.ts`: busca amigos com `status: ACCEPTED`, depois `Catch.findMany` filtrando por esses `userId`, ordenado por `capturedAt desc`, paginação por cursor composto (`capturedAt`, `id`) — **implementado, mas com paginação offset/limit (`page`/`limit`) em vez do cursor composto** decidido no item 3 do `CLAUDE.md`; resto da lógica (filtro por amigos aceitos, ordenação) está correto
+- [ ] 3.3.2 — `feed.routes.ts`: `GET /feed` (query params `cursor`, `limit`) — rota existe e autenticada, porém com `page`/`limit` em vez de `cursor` (mesma ressalva do item acima)
 - [ ] 3.3.3 — Teste: capturas de não-amigos nunca aparecem; paginação não duplica nem pula itens entre páginas
 
 ### 3.4 Reações (`modules/reactions`)

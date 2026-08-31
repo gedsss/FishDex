@@ -15,5 +15,3 @@ export class SpeciesRepository {
     return specie
   }
 }
-
-export const speciesRepository = new SpeciesRepository()

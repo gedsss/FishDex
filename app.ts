@@ -10,6 +10,7 @@ import { speciesRoutes } from './src/modules/species/species.routes'
 import { usersRoutes } from './src/modules/users/users.routes'
 import { friendshipRoutes } from './src/modules/friendships/friendships.routes'
 import { feedRoutes } from './src/modules/feed/feed.routes'
+import { achievementsRoutes } from './src/modules/achievements/achievements.routes'
 
 export const app = Fastify({ logger: true })
 
@@ -24,6 +25,7 @@ app.register(speciesRoutes, { prefix: '/species' })
 app.register(catchesRoutes, { prefix: '/catches' })
 app.register(friendshipRoutes, { prefix: '/friendships' })
 app.register(feedRoutes, { prefix: '/feed' })
+app.register(achievementsRoutes)
 
 app.get('/', (_request: FastifyRequest, reply: FastifyReply) => {
   return reply.send({ status: 200, message: 'Server Running' })

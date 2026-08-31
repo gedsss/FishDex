@@ -1,13 +1,15 @@
 import { NotFoundError } from '../../shared/errors'
-import { speciesRepository } from './species.repository'
+import type { SpeciesRepository } from './species.repository'
 
 export class SpeciesService {
+  constructor(private speciesRepository: SpeciesRepository) {}
+
   async getSpecies() {
-    return speciesRepository.getSpecies()
+    return this.speciesRepository.getSpecies()
   }
 
   async getSpeciesById(id: string) {
-    const species = await speciesRepository.getSpeciesById(id)
+    const species = await this.speciesRepository.getSpeciesById(id)
 
     if (!species) {
       throw new NotFoundError('Species not found')
@@ -16,5 +18,3 @@ export class SpeciesService {
     return species
   }
 }
-
-export const speciesService = new SpeciesService()
