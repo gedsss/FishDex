@@ -1,12 +1,17 @@
 import type { FastifyError, FastifyReply, FastifyRequest } from 'fastify'
 import { ZodError } from 'zod'
 import { Prisma } from '../../generated/prisma/client'
+import { DomainError } from '../shared/errors'
 
 export function errorHandler(
   error: FastifyError,
   request: FastifyRequest,
   reply: FastifyReply
 ) {
+  if (error instanceof DomainError) {
+    return reply.status(error.statusCode).send({ message: error.message })
+  }
+
   if (error instanceof ZodError) {
     const message = error.issues
       .map(issue => `${issue.path.join('.')}: ${issue.message}`)

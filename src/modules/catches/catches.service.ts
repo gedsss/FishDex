@@ -57,6 +57,10 @@ export class CatchService {
   async findById(id: string) {
     const catchById = await this.catchRepository.findById(id)
 
+    if (!catchById) {
+      throw new NotFoundError('Captura nao encontrada')
+    }
+
     return catchById
   }
 
