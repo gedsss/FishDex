@@ -42,14 +42,14 @@ jobs:
       - name: Instalar dependencias
         run: npm install
 
+      - name: Gerar Prisma Client
+        run: npx prisma generate
+
       - name: Checar tipos
         run: npx tsc --noEmit
 
       - name: Rodar lint
         run: npm run lint
-
-      - name: Gerar Prisma Client
-        run: npx prisma generate
 
       - name: Aplicar migrations
         run: npx prisma migrate deploy
