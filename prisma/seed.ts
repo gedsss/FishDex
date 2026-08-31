@@ -14,7 +14,9 @@ async function main() {
     })
   }
 
-  console.log(`Seed: ${ACHIEVEMENT_CATALOG.length} achievement(s) catalogado(s).`)
+  console.log(
+    `Seed: ${ACHIEVEMENT_CATALOG.length} achievement(s) catalogado(s).`
+  )
 }
 
 main()

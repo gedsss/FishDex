@@ -4,13 +4,14 @@ import fastifyJwt from '@fastify/jwt'
 import sensible from '@fastify/sensible'
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify'
 import { errorHandler } from './src/middlewares/errorHandler'
+import { achievementsRoutes } from './src/modules/achievements/achievements.routes'
 import { authRoutes } from './src/modules/auth/auth.routes'
 import { catchesRoutes } from './src/modules/catches/catches.routes'
+import { feedRoutes } from './src/modules/feed/feed.routes'
+import { friendshipRoutes } from './src/modules/friendships/friendships.routes'
+import { reactionRoutes } from './src/modules/reactions/reactions.routes'
 import { speciesRoutes } from './src/modules/species/species.routes'
 import { usersRoutes } from './src/modules/users/users.routes'
-import { friendshipRoutes } from './src/modules/friendships/friendships.routes'
-import { feedRoutes } from './src/modules/feed/feed.routes'
-import { achievementsRoutes } from './src/modules/achievements/achievements.routes'
 
 export const app = Fastify({ logger: true })
 
@@ -26,6 +27,7 @@ app.register(catchesRoutes, { prefix: '/catches' })
 app.register(friendshipRoutes, { prefix: '/friendships' })
 app.register(feedRoutes, { prefix: '/feed' })
 app.register(achievementsRoutes)
+app.register(reactionRoutes, { prefix: '/catches' })
 
 app.get('/', (_request: FastifyRequest, reply: FastifyReply) => {
   return reply.send({ status: 200, message: 'Server Running' })

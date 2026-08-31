@@ -1,5 +1,5 @@
-import type { AchievementsService } from '../achievements/achievements.service'
 import { NotFoundError } from '../../shared/errors'
+import type { AchievementsService } from '../achievements/achievements.service'
 import type { SpeciesRepository } from '../species/species.repository'
 import type { UserRepository } from '../users/users.repository'
 import type { CatchesRepository } from './catches.repository'

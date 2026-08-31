@@ -1,3 +1,3 @@
 export function calculateLevel(xp: number) {
-    return Math.floor(xp / 100) + 1;
+  return Math.floor(xp / 100) + 1
 }

@@ -1,36 +1,34 @@
-import { FastifyReply, FastifyRequest } from "fastify";
-import { CatchService } from "./catches.service";
-import { CreateCatchBodySchema, GetCatchByIdParamsSchema } from "./catches.schema";
+import type { FastifyReply, FastifyRequest } from 'fastify'
+import {
+  CreateCatchBodySchema,
+  GetCatchByIdParamsSchema,
+} from './catches.schema'
+import type { CatchService } from './catches.service'
 
-export class  CatchesController {
-    constructor(private catchesService: CatchService){
+export class CatchesController {
+  constructor(private catchesService: CatchService) {}
+  async create(request: FastifyRequest, reply: FastifyReply) {
+    const data = CreateCatchBodySchema.parse(request.body)
+    const userId = (request.user as { sub: string }).sub
 
-    }
-    async create(request: FastifyRequest, reply: FastifyReply){
-        const data = CreateCatchBodySchema.parse(request.body);
-        const userId = (request.user as { sub: string }).sub;
+    const create = await this.catchesService.create({ ...data, userId })
 
-        const create = await this.catchesService.create({ ...data, userId });
+    return reply.status(201).send(create)
+  }
 
-        return reply.status(201).send(create);
-    }
+  async findbyId(request: FastifyRequest, reply: FastifyReply) {
+    const { id } = GetCatchByIdParamsSchema.parse(request.params)
 
-    async findbyId(request: FastifyRequest, reply: FastifyReply){
+    const find = await this.catchesService.findById(id)
 
-        const { id } = GetCatchByIdParamsSchema.parse(request.params);
+    return find
+  }
 
-        const find = await this.catchesService.findById(id);
+  async findManyByUser(request: FastifyRequest, reply: FastifyReply) {
+    const userId = (request.user as { sub: string }).sub
 
-        return find;
-    }
+    const findMany = await this.catchesService.findManyByUser(userId)
 
-    async findManyByUser(request: FastifyRequest, reply: FastifyReply){
-
-        const userId = (request.user as { sub: string }).sub;
-
-        const findMany = await this.catchesService.findManyByUser(userId);
-
-        return findMany;
-
-    }
+    return findMany
+  }
 }
