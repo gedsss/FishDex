@@ -1,3 +1,4 @@
+import { NotFoundError } from '../../shared/errors'
 import type { UserRepository } from './users.repository'
 
 export class UserService {
@@ -6,7 +7,7 @@ export class UserService {
     const user = await this.userRepository.findById(id)
 
     if (!user) {
-      throw new Error('Usuario nao encontrado. ')
+      throw new NotFoundError('Usuario nao encontrado')
     }
 
     return user

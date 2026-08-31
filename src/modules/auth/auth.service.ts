@@ -1,4 +1,5 @@
 import bcrypt from 'bcrypt'
+import { ConflictError, UnauthorizedError } from '../../shared/errors'
 import type { AuthRepository } from './auth.repository'
 
 export class AuthService {
@@ -8,7 +9,7 @@ export class AuthService {
     const usuarioExiste = await this.authRepository.findByEmail(data.email)
 
     if (usuarioExiste) {
-      throw new Error('Email ja existe ')
+      throw new ConflictError('Email ja existe')
     }
 
     const senhaHash = await bcrypt.hash(data.password, 10)
@@ -29,13 +30,13 @@ export class AuthService {
   async login(data: { email: string; password: string }) {
     const user = await this.authRepository.findByEmail(data.email)
     if (!user) {
-      throw new Error('Email ou senha nao encontrados. ')
+      throw new UnauthorizedError('Email ou senha invalidos')
     }
 
     const senhaCorreta = await bcrypt.compare(data.password, user.passwordHash)
 
     if (!senhaCorreta) {
-      throw new Error('Email ou senha nao encontrados. ')
+      throw new UnauthorizedError('Email ou senha invalidos')
     }
 
     return {

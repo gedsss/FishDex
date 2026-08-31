@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: fishdex
+          POSTGRES_PASSWORD: fishdex
+          POSTGRES_DB: fishdex
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fishdex"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://fishdex:fishdex@localhost:5432/fishdex?schema=public
+      JWT_SECRET: test-secret
+      PORT: 3000
+
+    steps:
+      - name: Baixar o codigo
+        uses: actions/checkout@v4
+
+      - name: Instalar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Instalar dependencias
+        run: npm install
+
+      - name: Gerar Prisma Client
+        run: npx prisma generate
+
+      - name: Checar tipos
+        run: npx tsc --noEmit
+
+      - name: Rodar lint
+        run: npm run lint
+
+      - name: Aplicar migrations
+        run: npx prisma migrate deploy
+
+      - name: Rodar seed
+        run: npx tsx prisma/seed.ts
+
+      - name: Rodar testes
+        run: npm test
