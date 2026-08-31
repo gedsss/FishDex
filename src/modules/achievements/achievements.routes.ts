@@ -24,6 +24,7 @@ export const achievementsRoutes: FastifyPluginAsync = async fastify => {
   fastify.get(
     '/users/:id/achievements',
     { preHandler: authenticate },
-    (request, reply) => achievementsController.getUserAchievements(request, reply)
+    (request, reply) =>
+      achievementsController.getUserAchievements(request, reply)
   )
 }
