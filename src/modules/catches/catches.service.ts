@@ -1,5 +1,7 @@
 import { NotFoundError } from '../../shared/errors'
+import { type FeedCatchDTO, toFeedCatches } from '../../shared/feed-catch'
 import type { AchievementsService } from '../achievements/achievements.service'
+import type { ReactionsRepository } from '../reactions/reactions.repository'
 import type { SpeciesRepository } from '../species/species.repository'
 import type { UserRepository } from '../users/users.repository'
 import type { CatchesRepository } from './catches.repository'
@@ -10,7 +12,8 @@ export class CatchService {
     private catchRepository: CatchesRepository,
     private speciesRepository: SpeciesRepository,
     private userRepository: UserRepository,
-    private achievementsService: AchievementsService
+    private achievementsService: AchievementsService,
+    private reactionsRepository: ReactionsRepository
   ) {}
   async create(data: {
     userId: string
@@ -54,19 +57,31 @@ export class CatchService {
     return newCatch
   }
 
-  async findById(id: string) {
+  async findById(id: string, viewerId: string): Promise<FeedCatchDTO> {
     const catchById = await this.catchRepository.findById(id)
 
     if (!catchById) {
       throw new NotFoundError('Captura nao encontrada')
     }
 
-    return catchById
+    const [enriched] = await toFeedCatches([catchById], viewerId, {
+      reactionsRepository: this.reactionsRepository,
+      catchesRepository: this.catchRepository,
+    })
+
+    return enriched
   }
 
-  async findManyByUser(userId: string) {
-    const catchesByUserId = await this.catchRepository.findManyByUser(userId)
+  async findManyByUser(
+    userId: string,
+    viewerId: string,
+    pagination?: { page?: number; limit?: number }
+  ): Promise<FeedCatchDTO[]> {
+    const catches = await this.catchRepository.findManyByUser(userId, pagination)
 
-    return catchesByUserId
+    return toFeedCatches(catches, viewerId, {
+      reactionsRepository: this.reactionsRepository,
+      catchesRepository: this.catchRepository,
+    })
   }
 }

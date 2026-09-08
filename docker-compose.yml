@@ -8,9 +8,10 @@ services:
       POSTGRES_PASSWORD: fishdex
       POSTGRES_DB: fishdex
     ports:
-      # Porta do host mapeada para 5434: 5432 já tem o PostgreSQL nativo do
-      # Windows, e 5433 já está sendo usada por outro projeto nesta máquina.
-      - "5434:5432"
+      # Porta do host mapeada para 5433: a 5432 já tem o PostgreSQL nativo do
+      # Windows nesta máquina. Se a 5433 também estiver ocupada por outro
+      # projeto, troque aqui e no DATABASE_URL do .env de forma consistente.
+      - "5433:5432"
     volumes:
       - fishdex_pgdata:/var/lib/postgresql/data
 

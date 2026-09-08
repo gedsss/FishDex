@@ -9,6 +9,11 @@ export class FeedRepository {
       orderBy: { capturedAt: 'desc' },
       skip: (page - 1) * limit,
       take: limit,
+      include: {
+        user: {
+          select: { id: true, username: true, level: true, avatarUrl: true },
+        },
+      },
     })
 
     return catches
