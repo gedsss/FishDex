@@ -21,9 +21,9 @@ Também funciona como rede social simples:
 - **Autenticação**: `@fastify/jwt`
 - **Hash de senha**: bcrypt
 - **Validação**: zod
-- **Testes**: Vitest + `app.inject()` nativo do Fastify (decisão fechada em `SERVIDOR.md`)
-- **Frontend**: mobile (React Native ou Flutter — a definir, fora do escopo atual)
-- **Storage de fotos**: a definir (disco local vs. S3/R2/Supabase Storage) — não bloqueia a modelagem atual
+- **Testes**: Vitest + `app.inject()` nativo do Fastify
+- **Frontend**: mobile (Expo/React Native, pasta `mobile/`), integrado ponta a ponta
+- **Storage de fotos**: disco local (`POST /uploads`, ver decisão nº 2 abaixo) — bucket externo é trabalho futuro para deploy
 
 ## Fase atual: backend implementado + integrado ao app mobile
 
@@ -278,7 +278,7 @@ Registrar como plugin Fastify (`fastify.decorate('prisma', prisma)`) permite ace
 3. ~~**Paginação do feed**~~ — **fechada: offset (`?page=&limit=`).** `GET /feed` e `GET /catches/me` aceitam `page`/`limit`; o app usa `useInfiniteQuery` com página de 3. Suficiente para a escala do projeto; migrar para cursor depois é trocar o `skip/take` do `feed.repository`.
 4. ~~**Conjunto de emojis de reação**~~ — **fechado: os 6 do enum** (`LIKE`, `LOVE`, `FIRE`, `WOW`, `CLAP`, `BIG_ONE`). O app tem rótulo/cor para cada um em `src/constants/theme.ts` (`ReactionMeta`).
 5. ~~**Modelagem de `Friendship`**~~ — **fechada: par ordenado (`userAId`/`userBId`)**, como descrito acima. Implementado em `friendships.repository.ts` (`sortPair`).
-6. ~~**JavaScript puro vs. TypeScript** no backend~~ — **decisão fechada em `SERVIDOR.md` (item 0 da tabela de decisões): TypeScript.** Motivo: o Prisma 7 gera o client sempre como TypeScript (não existe saída `.js` pura nesse generator), então o projeto já precisa de um runtime com suporte a TS (`tsx`) de qualquer forma — escrever os módulos também em TS evita misturar `.js` de aplicação com `.ts` gerado. Falta só criar `tsconfig.json` e instalar `@types/node`/`@types/bcrypt` (Fase 0.7 do `SERVIDOR.md`).
+6. ~~**JavaScript puro vs. TypeScript** no backend~~ — **fechada: TypeScript.** Motivo: o Prisma 7 gera o client sempre como TypeScript (não existe saída `.js` pura nesse generator), então o projeto já precisa de um runtime com suporte a TS (`tsx`) de qualquer forma — escrever os módulos também em TS evita misturar `.js` de aplicação com `.ts` gerado. `tsconfig.json` e `@types/node`/`@types/bcrypt` já instalados.
 7. **Localização da captura**: armazenar coordenadas exatas (`locationLat`/`locationLng`) tem implicação de privacidade (expõe onde o usuário pesca/mora) — considerar se deve ser opcional/aproximado, ou omitido do perfil público de amigos.
 8. **Regras de bloqueio de amizade**: o que exatamente `BLOCKED` impede — reenvio de pedido, aparecer no feed, ver perfil?
 9. **Edição/remoção de uma `Catch` já registrada**: se permitido, precisa reverter/recalcular `xp`/`level` do usuário — vale a pena bloquear edição de `speciesId` (ou de qualquer campo que afete XP) depois de criada, e permitir só editar campos descritivos (peso, comprimento, foto)?
@@ -294,3 +294,6 @@ Ainda em aberto:
 - Storage de fotos em bucket externo (hoje disco local) para deploy.
 - Estratégia de deploy e infraestrutura de produção.
 - Migrar paginação do feed para cursor, se a base crescer.
+
+Levantamento completo de segurança, robustez e completude de produto (com
+`arquivo:linha` de cada pendência e checklist priorizado): `PENDENCIAS.md`.

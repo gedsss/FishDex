@@ -2,7 +2,7 @@
 
 App de pescaria estilo Pokédex. O usuário registra capturas de peixes, ganha XP e sobe de nível, e interage com amigos através de um feed com reações e conquistas.
 
-Contexto completo de produto e decisões de modelagem em [CLAUDE.md](./CLAUDE.md). Plano de execução e checklist de fases em [SERVIDOR.md](./SERVIDOR.md). Guia de subir backend + app mobile juntos em [INTEGRACAO.md](./INTEGRACAO.md).
+Contexto completo de produto e decisões de modelagem em [CLAUDE.md](./CLAUDE.md). Guia de subir backend + app mobile juntos em [INTEGRACAO.md](./INTEGRACAO.md). Pendências de segurança, robustez e completude em [PENDENCIAS.md](./PENDENCIAS.md).
 
 ## Stack
 
