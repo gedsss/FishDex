@@ -25,11 +25,19 @@ Também funciona como rede social simples:
 - **Frontend**: mobile (React Native ou Flutter — a definir, fora do escopo atual)
 - **Storage de fotos**: a definir (disco local vs. S3/R2/Supabase Storage) — não bloqueia a modelagem atual
 
-## Fase atual: modelagem de dados + estrutura do backend
+## Fase atual: backend implementado + integrado ao app mobile
 
-Escopo desta fase: schema do banco, arquitetura de pastas e estratégia de autenticação. **Não** inclui implementação de rotas/controllers/services — isso fica por conta do usuário. Os arquivos já criados nesta fase são apenas os de fundação (schema Prisma, docker-compose, `.env.example`), que são configuração/infraestrutura, não lógica de negócio.
+O backend está **completo e em uso pelo app mobile** (`../PROJETO-INTEGRADOR FRONT 2026-2/mobile`), rodando contra o Postgres real. Todos os módulos (`auth`, `users`, `species`, `catches`, `feed`, `friendships`, `reactions`, `achievements`, `uploads`) têm routes/controller/service/repository implementados e testados (Vitest). Guia de subir os dois juntos: `INTEGRACAO.md`. Contrato completo da API: `README.md`.
 
-Arquivos já criados na raiz do projeto:
+O que foi adicionado na fase de integração (ver "Decisões em aberto" abaixo para o racional):
+
+- **Metadados de espécie** no schema (`habitat`, `family`, `averageSizeCm`, `diet`, `baits`, `regions`, `mapPins`, `tone`, `dexOrder`) — alimentam a ficha técnica do app. Migration `20260908053232_species_metadata`.
+- **Upload de foto** (`POST /uploads`, disco local, servido por `@fastify/static`).
+- **Captura enriquecida** (`src/shared/feed-catch.ts`): feed/captura devolvem autor + contadores de reação + "nova espécie".
+- **`GET /users/:id/catches`** (galeria de capturas no perfil de um amigo).
+- **Seed real** (`prisma/seed.ts`): 12 espécies, catálogo de conquistas, 3 usuários demo já amigos com capturas e reações.
+
+Arquivos de fundação já criados na raiz do projeto:
 
 - `prisma/schema.prisma` — schema completo (ver detalhamento abaixo)
 - `prisma.config.ts` — configuração do Prisma CLI (ver nota sobre Prisma 7 abaixo)
@@ -62,6 +70,8 @@ Conta e progressão: `username`/`email` únicos, `passwordHash` (bcrypt, nunca r
 ### Species (catálogo fixo)
 
 `difficulty` é um enum (`EASY`, `MEDIUM`, `HARD`, `EPIC`, `LEGENDARY`) usado só como rótulo de exibição/filtro; `baseXp` é o campo numérico autoritativo que efetivamente concede XP. Separar os dois evita que ajustar o XP de uma espécie específica force uma migração de enum ou uma tabela de lookup dificuldade→XP.
+
+**Metadados (migration `species_metadata`)**: `dexOrder` (Int, numeração estável do Dex — `GET /species` ordena por ele), `habitat` (`"Doce"`/`"Salgada"`), `family`, `averageSizeCm`, `diet`, `baits` (`String[]`), `regions` e `mapPins` (`Json`: `[{name,season}]` e `[{x,y,label}]`), `tone` (`String[]` de 2 cores hex). Todos opcionais — o cadastro mínimo de uma espécie continua sendo `name` + `difficulty` + `baseXp`. São conteúdo fixo em pt-BR, mesmo tratamento de `description`; alimentam a ficha técnica e os filtros do app. Populados pelo `prisma/seed.ts`.
 
 ### Catch
 
@@ -263,11 +273,11 @@ Registrar como plugin Fastify (`fastify.decorate('prisma', prisma)`) permite ace
 
 ## Decisões em aberto (confirmar antes de avançar)
 
-1. **Fórmula XP → nível**: linear (ex.: 100 XP por nível), exponencial, ou tabela fixa de limiares por nível? Define a lógica de `catches.service.ts` que recalcula `level`.
-2. **Storage das fotos**: disco local (`photoUrl` = caminho relativo servido por rota estática) vs. bucket externo (`photoUrl` = URL absoluta). Impacta se precisa de uma etapa de upload separada (presigned URL) antes de criar a `Catch`.
-3. **Paginação do feed**: cursor-based (recomendado — usar `capturedAt` + `id` como cursor composto, estável mesmo com inserções concorrentes) vs. offset/limit simples. Também definir tamanho de página default.
-4. **Conjunto exato de emojis de reação**: o enum `ReactionEmoji` no schema tem 6 valores de exemplo (`LIKE`, `LOVE`, `FIRE`, `WOW`, `CLAP`, `BIG_ONE`) — precisa da lista final de produto/design.
-5. **Modelagem de `Friendship`**: confirmar a abordagem de par ordenado (`userAId`/`userBId`, ver justificativa acima) ou preferir uma versão mais simples com `requesterId`/`addresseeId` e checagem de duplicidade só na camada de serviço (menos garantia no banco, menos complexidade no código).
+1. ~~**Fórmula XP → nível**~~ — **fechada: linear, 100 XP por nível.** `calculateLevel(xp) = Math.floor(xp / 100) + 1` em `src/modules/catches/level.ts`. O frontend espelha a fórmula em `src/constants/theme.ts` (`xpProgress`) só para desenhar a barra de progresso.
+2. ~~**Storage das fotos**~~ — **fechada: disco local.** `POST /uploads` (multipart, `@fastify/multipart`) salva em `uploads/<uuid>.<ext>` e devolve `{ url: "/uploads/..." }`; `@fastify/static` serve de volta. O app envia a foto **antes** de `POST /catches` e guarda o caminho relativo em `photoUrl`. Trocar por bucket externo depois = mexer só no módulo `uploads` + no `src/api/uploads.ts` do app. `uploads/` é gitignorado.
+3. ~~**Paginação do feed**~~ — **fechada: offset (`?page=&limit=`).** `GET /feed` e `GET /catches/me` aceitam `page`/`limit`; o app usa `useInfiniteQuery` com página de 3. Suficiente para a escala do projeto; migrar para cursor depois é trocar o `skip/take` do `feed.repository`.
+4. ~~**Conjunto de emojis de reação**~~ — **fechado: os 6 do enum** (`LIKE`, `LOVE`, `FIRE`, `WOW`, `CLAP`, `BIG_ONE`). O app tem rótulo/cor para cada um em `src/constants/theme.ts` (`ReactionMeta`).
+5. ~~**Modelagem de `Friendship`**~~ — **fechada: par ordenado (`userAId`/`userBId`)**, como descrito acima. Implementado em `friendships.repository.ts` (`sortPair`).
 6. ~~**JavaScript puro vs. TypeScript** no backend~~ — **decisão fechada em `SERVIDOR.md` (item 0 da tabela de decisões): TypeScript.** Motivo: o Prisma 7 gera o client sempre como TypeScript (não existe saída `.js` pura nesse generator), então o projeto já precisa de um runtime com suporte a TS (`tsx`) de qualquer forma — escrever os módulos também em TS evita misturar `.js` de aplicação com `.ts` gerado. Falta só criar `tsconfig.json` e instalar `@types/node`/`@types/bcrypt` (Fase 0.7 do `SERVIDOR.md`).
 7. **Localização da captura**: armazenar coordenadas exatas (`locationLat`/`locationLng`) tem implicação de privacidade (expõe onde o usuário pesca/mora) — considerar se deve ser opcional/aproximado, ou omitido do perfil público de amigos.
 8. **Regras de bloqueio de amizade**: o que exatamente `BLOCKED` impede — reenvio de pedido, aparecer no feed, ver perfil?
@@ -275,10 +285,12 @@ Registrar como plugin Fastify (`fastify.decorate('prisma', prisma)`) permite ace
 
 ## Próximas fases (fora do escopo atual)
 
-- Definir e implementar a fórmula de progressão de XP e nível.
-- Definir e implementar upload/armazenamento das fotos de captura.
-- Implementar feed social e sistema de amizade (incluindo paginação).
-- Implementar sistema de reações com emojis.
-- Implementar sistema de conquistas.
-- Desenvolver o frontend mobile (React Native ou Flutter).
-- Definir estratégia de deploy e infraestrutura de produção.
+Já entregue: fórmula de XP/nível, upload de fotos, feed + amizade + paginação, reações, conquistas, e o app mobile (Expo/React Native, na pasta `mobile/`) integrado ponta a ponta.
+
+Ainda em aberto:
+
+- Itens 7–9 das "Decisões em aberto" (localização/privacidade, regras de `BLOCKED`, edição de `Catch`).
+- Refresh token / expiração de sessão (hoje só access token).
+- Storage de fotos em bucket externo (hoje disco local) para deploy.
+- Estratégia de deploy e infraestrutura de produção.
+- Migrar paginação do feed para cursor, se a base crescer.

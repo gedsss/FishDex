@@ -1,3 +1,4 @@
+import { avatarToneFor } from '../../shared/avatar-tone'
 import { NotFoundError } from '../../shared/errors'
 import type { UserRepository } from './users.repository'
 
@@ -29,6 +30,12 @@ export class UserService {
       email: user.email,
       level: user.level,
       xp: user.xp,
+      avatarUrl: user.avatarUrl,
+      // Derivados (sem coluna dedicada): o app usa @handle e a data de entrada
+      // no cabeçalho do perfil, e o tom do avatar no gradiente.
+      handle: `@${user.username.trim().toLowerCase().replace(/\s+/g, '')}`,
+      memberSince: user.createdAt,
+      avatarTone: avatarToneFor(user.id),
       catchesBySpecies,
     }
   }

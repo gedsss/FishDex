@@ -2,7 +2,11 @@ import { prisma } from '../../../prisma/prisma.client'
 
 export class SpeciesRepository {
   async getSpecies() {
-    const species = await prisma.species.findMany()
+    // dexOrder define a numeração estável do Dex no app (#001…); name como
+    // desempate para espécies sem dexOrder definido.
+    const species = await prisma.species.findMany({
+      orderBy: [{ dexOrder: 'asc' }, { name: 'asc' }],
+    })
 
     return species
   }

@@ -41,4 +41,32 @@ export class ReactionsRepository {
       },
     })
   }
+
+  // Contagem de reações por emoji para várias capturas de uma vez (feed / listas).
+  async countByCatchIdsGroupedByEmoji(catchIds: string[]) {
+    if (catchIds.length === 0) return []
+
+    return await prisma.reaction.groupBy({
+      by: ['catchId', 'emoji'],
+      where: {
+        catchId: { in: catchIds },
+      },
+      _count: {
+        emoji: true,
+      },
+    })
+  }
+
+  // Reação do próprio usuário (viewer) em cada captura de um conjunto.
+  async findViewerReactions(catchIds: string[], userId: string) {
+    if (catchIds.length === 0) return []
+
+    return await prisma.reaction.findMany({
+      where: {
+        catchId: { in: catchIds },
+        userId,
+      },
+      select: { catchId: true, emoji: true },
+    })
+  }
 }

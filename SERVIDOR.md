@@ -4,7 +4,18 @@ Backend que registra capturas de peixes, aplica progressão de XP/nível por esp
 
 Stack escolhida: Node.js + Fastify + TypeScript, PostgreSQL (Docker local) + Prisma 7, Zod (validação), bcrypt (hash de senha), `@fastify/jwt` (autenticação), Vitest (testes), tsx (runtime de dev).
 
-Ação imediata: fechar o setup de TypeScript (`tsconfig.json` + `@types/*`) antes de criar qualquer arquivo em `src/` — o client gerado pelo Prisma 7 já é TypeScript-only, então misturar `.js` de aplicação com `.ts` gerado só cria atrito depois. Ver checklist da Fase 0 abaixo.
+> **Status (integração concluída):** todas as fases 0–4 estão implementadas e o
+> backend está integrado ponta a ponta com o app mobile (`../PROJETO-INTEGRADOR
+> FRONT 2026-2/mobile`), rodando com dados reais do Postgres. Suíte Vitest: 37
+> testes passando. O contrato final da API está em `README.md`; o passo a passo de
+> subir backend + app juntos está em `INTEGRACAO.md`. Os checkboxes `[ ]` abaixo são
+> o plano original — vários já foram entregues; onde a implementação divergiu do
+> plano (ex.: paginação offset em vez de cursor, sem `$transaction` na criação da
+> captura, upload em disco local), a nota no item registra a diferença. Itens
+> genuinamente pendentes: `$transaction` na captura (2.2.2), refresh token,
+> storage em bucket externo, regras de `BLOCKED`.
+
+Ação imediata (histórica): fechar o setup de TypeScript (`tsconfig.json` + `@types/*`) antes de criar qualquer arquivo em `src/` — o client gerado pelo Prisma 7 já é TypeScript-only, então misturar `.js` de aplicação com `.ts` gerado só cria atrito depois. Ver checklist da Fase 0 abaixo.
 
 ---
 

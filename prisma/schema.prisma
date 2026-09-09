@@ -58,6 +58,19 @@ model Species {
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
 
+  // Metadados de catálogo (conteúdo fixo, em pt-BR — mesmo padrão de `description`).
+  // Alimentam a ficha técnica e os filtros do app mobile; todos opcionais para
+  // não travar o cadastro mínimo de uma espécie (name + difficulty + baseXp).
+  dexOrder      Int? // posição estável no Dex (o app numera #001… pela ordem de GET /species)
+  habitat       String? // "Doce" | "Salgada" — rótulo de exibição/filtro
+  family        String?
+  averageSizeCm Int?
+  diet          String?
+  baits         String[] @default([]) // iscas recomendadas
+  regions       Json? // [{ name, season }]
+  mapPins       Json? // [{ x, y, label }] — pontos no mapa de ocorrência da ficha
+  tone          String[] @default([]) // 2 cores hex do gradiente/placeholder
+
   catches Catch[]
 
   @@map("species")
