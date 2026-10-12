@@ -71,6 +71,12 @@ model Species {
   mapPins       Json? // [{ x, y, label }] — pontos no mapa de ocorrência da ficha
   tone          String[] @default([]) // 2 cores hex do gradiente/placeholder
 
+  // Dicas de pesca: escritas à mão (rascunho + revisão de pescador).
+  bestTime      String?
+  techniques    String[] @default([])
+  closedSeasons Json? // [{ region, period, rule }] — defeso varia por bacia/estado
+  tipsReviewed  Boolean  @default(false)
+
   catches Catch[]
 
   @@map("species")

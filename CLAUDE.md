@@ -73,6 +73,17 @@ Conta e progressão: `username`/`email` únicos, `passwordHash` (bcrypt, nunca r
 
 **Metadados (migration `species_metadata`)**: `dexOrder` (Int, numeração estável do Dex — `GET /species` ordena por ele), `habitat` (`"Doce"`/`"Salgada"`), `family`, `averageSizeCm`, `diet`, `baits` (`String[]`), `regions` e `mapPins` (`Json`: `[{name,season}]` e `[{x,y,label}]`), `tone` (`String[]` de 2 cores hex). Todos opcionais — o cadastro mínimo de uma espécie continua sendo `name` + `difficulty` + `baseXp`. São conteúdo fixo em pt-BR, mesmo tratamento de `description`; alimentam a ficha técnica e os filtros do app. Populados pelo `prisma/seed.ts`.
 
+**Dicas de pesca (migration `species_fishing_tips`)**: `bestTime` (melhor horário), `techniques` (`String[]`), `closedSeasons` (`Json`: `[{region, period, rule}]` — defeso varia por bacia/estado, por isso é lista) e `tipsReviewed` (`Boolean`, default `false`). A "temporada por região" já existia: é `regions[].season`. O app mostra "Dicas em revisão" enquanto `tipsReviewed` for `false` e sempre exibe um aviso de que o defeso deve ser confirmado na portaria do IBAMA/órgão estadual.
+
+**Catálogo brasileiro curado (decidido em 2026-10-12)**:
+
+- A lista de espécies é **manual e curada** em `prisma/data/species.ts` (32 espécies: 20 de água doce + 12 de água salgada, ordem do Dex = ordem do array). Saíram Betta e Peixe-palhaço (não são de pesca no Brasil) e Garoupa (*Epinephelus marginatus*, ameaçada — Portaria MMA 445/2014). Mero fica de fora pelo mesmo motivo (pesca proibida). Espécie protegida não entra como "troféu".
+- **GBIF só para conferência**: `npm run gbif:check` (`scripts/gbif-check.ts`) consulta a API grátis da GBIF (sem chave) — Species Match para nome científico/família e Occurrence (`country=BR`, facet por estado) para confirmar registros no Brasil e orientar as regiões. Só leitura: não grava no banco nem em arquivo; correções são feitas à mão no catálogo.
+- **Dicas são escritas à mão** (diferencial do app). O rascunho atual foi feito por IA e **precisa de revisão de pescador** — ao revisar uma espécie, colocar `tipsReviewed: true` nela em `prisma/data/species.ts` e rodar o seed.
+- **Mapa "Onde ocorre"**: o app desenha o Brasil em duas camadas — `mobile/assets/images/brasil.svg` (preenchimento, `textSecondary` a 25%) e `brasil-contorno.svg` (borda, `textSecondary` cheio), as duas pintadas por `tintColor` para funcionar no tema claro e escuro. Gerados do Natural Earth 110m com projeção linear: oeste -74,5 / leste -34,2 / norte 5,8 / sul -34,3, viewBox 403×401. Cada região do catálogo tem um `place` da tabela `MAP` de `prisma/data/species.ts`, definido por **lat/lng real** e convertido para % com esses mesmos limites (função `place`). O seed grava `regions` (só `name`/`season`) e gera `mapPins` a partir delas, com `label` = número da região (`"1"`, `"2"`…). O app mostra bolinhas numeradas no mapa e o mesmo número na lista de regiões. Se mudar os limites da projeção, é preciso regenerar o SVG e os pinos juntos. Ao adicionar um lugar, manter ≥ 18 px (~6%) de distância dos outros pinos da mesma espécie, senão as bolinhas se sobrepõem.
+- **Ilustrações**: SVG flat, um por espécie, em `public/illustrations/<slug>.svg` (versionados no git, servidos em `/illustrations/` pelo `@fastify/static`). O seed grava `referenceImageUrl = /illustrations/<slug>.svg`. No app, a ilustração fica por cima das listras da raridade (`contain`), e a espécie bloqueada usa o mesmo arquivo com `tintColor` como silhueta. Foto real só nas capturas dos usuários. Trocar por arte de ilustrador = substituir os arquivos.
+- O seed apaga espécies que saíram do catálogo **se não tiverem capturas**; as que têm capturas ficam e geram aviso no console.
+
 ### Catch
 
 Relacionamento **1:N** (User → Catch, Species → Catch): uma captura pertence a exatamly um usuário e a exatamente uma espécie; um usuário/espécie tem muitas capturas.
@@ -257,7 +268,7 @@ Registrar como plugin Fastify (`fastify.decorate('prisma', prisma)`) permite ace
    ```
 
    Note que no Prisma 7 `migrate dev` **não** roda `generate` nem o seed automaticamente mais — cada passo precisa ser chamado explicitamente.
-5. **Seed do catálogo fixo** (quando `prisma/seed.ts` existir): configurar `"prisma": { "seed": "tsx prisma/seed.ts" }` no `package.json` e rodar `npx prisma db seed` para popular `Species` e `Achievement`.
+5. **Seed do catálogo fixo**: `npx prisma db seed` popula `Species`, `Achievement` e os usuários demo. No Prisma 7 o comando do seed fica em `prisma.config.ts` (`migrations.seed: 'tsx prisma/seed.ts'`) — a chave `"prisma.seed"` do `package.json` não é mais lida.
 6. **Inspecionar dados**: `npx prisma studio`.
 
 ---
@@ -294,6 +305,8 @@ Ainda em aberto:
 - Storage de fotos em bucket externo (hoje disco local) para deploy.
 - Estratégia de deploy e infraestrutura de produção.
 - Migrar paginação do feed para cursor, se a base crescer.
+- Revisão das dicas de pesca e do defeso por pescadores (todas as 32 espécies estão com `tipsReviewed: false`).
+- Os testes (Vitest) rodam no mesmo banco de desenvolvimento e deixam linhas "Especie teste" no catálogo (aparecem no app); vale um banco separado para testes.
 
 Levantamento completo de segurança, robustez e completude de produto (com
 `arquivo:linha` de cada pendência e checklist priorizado): `PENDENCIAS.md`.

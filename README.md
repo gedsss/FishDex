@@ -103,6 +103,7 @@ Todo push e pull request roda automaticamente, via GitHub Actions (`.github/work
 | GET | `/species/:id` | não | detalhe de uma espécie (com ficha técnica) |
 | POST | `/uploads` | sim | envia a foto da captura (multipart, campo `file`, ≤ 8 MB), retorna `{ url }` |
 | GET | `/uploads/:arquivo` | não | serve a foto enviada (estático) |
+| GET | `/illustrations/:arquivo` | não | serve a ilustração SVG da espécie (estático, `public/illustrations/`) |
 | POST | `/catches` | sim | registra uma captura, concede XP, checa conquistas |
 | GET | `/catches/me` | sim | capturas do usuário logado (enriquecidas); com `?page=&limit=` pagina |
 | GET | `/catches/:id` | sim | detalhe de uma captura (enriquecida) |
@@ -133,6 +134,26 @@ Todo push e pull request roda automaticamente, via GitHub Actions (`.github/work
   "mine": false                               // a captura é de quem está pedindo?
 }
 ```
+
+### Espécie (`GET /species` e `GET /species/:id`)
+
+Devolve a linha inteira da espécie. Além de `name`, `scientificName`, `difficulty`, `baseXp`, `description` e da ficha técnica (`dexOrder`, `habitat`, `family`, `averageSizeCm`, `diet`, `baits`, `regions`, `mapPins`, `tone`), traz:
+
+```jsonc
+{
+  "referenceImageUrl": "/illustrations/dourado.svg", // ilustração da carta (também vira a silhueta)
+  "bestTime": "Manhã, em corredeiras e saídas de lagoa",
+  "techniques": ["Meia-água com isca artificial"],
+  "closedSeasons": [                                   // defeso, por região
+    { "region": "Bacia do Paraná (SP/PR/MS/MG/GO)", "period": "1 nov – 28 fev", "rule": "Piracema: ..." }
+  ],
+  "tipsReviewed": false                                // dicas ainda não revisadas por pescador
+}
+```
+
+`mapPins` tem um pino por região, na mesma ordem de `regions`: `x`/`y` em % sobre o mapa do Brasil do app (a partir de lat/lng reais) e `label` com o número da região (`"1"`, `"2"`…).
+
+O catálogo é curado à mão em `prisma/data/species.ts`. `npm run gbif:check` confere nome científico, família e registros no Brasil na API da GBIF (só leitura).
 
 ### Perfil (`GET /users/me` e `GET /users/:id`)
 

@@ -8,18 +8,17 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "test": "vitest run",
+    "gbif:check": "tsx scripts/gbif-check.ts",
     "lint": "biome lint .",
     "format": "biome format --write .",
     "check": "biome check .",
-    "check:fix": "biome check --write ."
+    "check:fix": "biome check --write .",
+    "illustrations": "tsx scripts/illustrations/build.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
-  },
   "dependencies": {
     "@fastify/cors": "^11.3.0",
     "@fastify/jwt": "^10.2.2",

@@ -1,4 +1,5 @@
 import 'dotenv/config'
+import { join } from 'node:path'
 import cors from '@fastify/cors'
 import fastifyJwt from '@fastify/jwt'
 import multipart from '@fastify/multipart'
@@ -40,6 +41,12 @@ app.register(fastifyStatic, {
   root: UPLOADS_DIR,
   prefix: '/uploads/',
   index: false,
+})
+app.register(fastifyStatic, {
+  root: join(process.cwd(), 'public', 'illustrations'),
+  prefix: '/illustrations/',
+  index: false,
+  decorateReply: false,
 })
 app.setErrorHandler(errorHandler)
 
