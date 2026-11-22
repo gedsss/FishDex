@@ -14,10 +14,7 @@ import { feedRoutes } from './src/modules/feed/feed.routes'
 import { friendshipRoutes } from './src/modules/friendships/friendships.routes'
 import { reactionRoutes } from './src/modules/reactions/reactions.routes'
 import { speciesRoutes } from './src/modules/species/species.routes'
-import {
-  MAX_UPLOAD_BYTES,
-  UPLOADS_DIR,
-} from './src/modules/uploads/uploads.constants'
+import { MAX_UPLOAD_BYTES } from './src/modules/uploads/uploads.constants'
 import { uploadsRoutes } from './src/modules/uploads/uploads.routes'
 import { usersRoutes } from './src/modules/users/users.routes'
 
@@ -36,17 +33,12 @@ app.register(sensible)
 app.register(multipart, {
   limits: { fileSize: MAX_UPLOAD_BYTES, files: 1 },
 })
-// Fotos de captura enviadas via POST /uploads são servidas de volta aqui.
-app.register(fastifyStatic, {
-  root: UPLOADS_DIR,
-  prefix: '/uploads/',
-  index: false,
-})
+// Fotos de captura ficam no banco (tabela `media`) e são servidas pelo
+// módulo uploads em GET /uploads/:id — não há mais pasta em disco.
 app.register(fastifyStatic, {
   root: join(process.cwd(), 'public', 'illustrations'),
   prefix: '/illustrations/',
   index: false,
-  decorateReply: false,
 })
 app.setErrorHandler(errorHandler)
 

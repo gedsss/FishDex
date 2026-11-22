@@ -23,7 +23,7 @@ Também funciona como rede social simples:
 - **Validação**: zod
 - **Testes**: Vitest + `app.inject()` nativo do Fastify
 - **Frontend**: mobile (Expo/React Native, pasta `mobile/`), integrado ponta a ponta
-- **Storage de fotos**: disco local (`POST /uploads`, ver decisão nº 2 abaixo) — bucket externo é trabalho futuro para deploy
+- **Storage de fotos**: no próprio Postgres, tabela `media` (`POST /uploads`, ver decisão nº 2 abaixo)
 
 ## Fase atual: backend implementado + integrado ao app mobile
 
@@ -32,7 +32,7 @@ O backend está **completo e em uso pelo app mobile** (`../PROJETO-INTEGRADOR FR
 O que foi adicionado na fase de integração (ver "Decisões em aberto" abaixo para o racional):
 
 - **Metadados de espécie** no schema (`habitat`, `family`, `averageSizeCm`, `diet`, `baits`, `regions`, `mapPins`, `tone`, `dexOrder`) — alimentam a ficha técnica do app. Migration `20260908053232_species_metadata`.
-- **Upload de foto** (`POST /uploads`, disco local, servido por `@fastify/static`).
+- **Upload de foto** (`POST /uploads`, guardada no banco na tabela `media`, servida por `GET /uploads/:id`). Migration `media_uploads`.
 - **Captura enriquecida** (`src/shared/feed-catch.ts`): feed/captura devolvem autor + contadores de reação + "nova espécie".
 - **`GET /users/:id/catches`** (galeria de capturas no perfil de um amigo).
 - **Seed real** (`prisma/seed.ts`): 12 espécies, catálogo de conquistas, 3 usuários demo já amigos com capturas e reações.
@@ -285,7 +285,7 @@ Registrar como plugin Fastify (`fastify.decorate('prisma', prisma)`) permite ace
 ## Decisões em aberto (confirmar antes de avançar)
 
 1. ~~**Fórmula XP → nível**~~ — **fechada: linear, 100 XP por nível.** `calculateLevel(xp) = Math.floor(xp / 100) + 1` em `src/modules/catches/level.ts`. O frontend espelha a fórmula em `src/constants/theme.ts` (`xpProgress`) só para desenhar a barra de progresso.
-2. ~~**Storage das fotos**~~ — **fechada: disco local.** `POST /uploads` (multipart, `@fastify/multipart`) salva em `uploads/<uuid>.<ext>` e devolve `{ url: "/uploads/..." }`; `@fastify/static` serve de volta. O app envia a foto **antes** de `POST /catches` e guarda o caminho relativo em `photoUrl`. Trocar por bucket externo depois = mexer só no módulo `uploads` + no `src/api/uploads.ts` do app. `uploads/` é gitignorado.
+2. ~~**Storage das fotos**~~ — **fechada: no banco de dados (decidido em 2026-11-22, substituiu o disco local).** Model `Media` (`id`, `userId`, `mimeType`, `sizeBytes`, `data Bytes`/`bytea`, `createdAt`; `onDelete: Cascade` no usuário). `POST /uploads` (multipart, `@fastify/multipart`, ≤ 8 MB) lê o arquivo em memória com `toBuffer()` (estouro de limite lança antes de gravar), detecta o tipo pelos magic bytes (`detectImageMime` em `uploads.service.ts`: JPEG/PNG/WebP/HEIC/HEIF — SVG e o resto são 400) e grava; devolve `{ id, url: "/uploads/<id>", mimeType, sizeBytes, createdAt }`. `GET /uploads/:id` é público (o app usa `<Image source={{ uri }}>` sem header) e responde com o `Content-Type` detectado, `nosniff`, CSP `default-src 'none'` e cache imutável. O contrato com o app não mudou: ele envia a foto **antes** de `POST /catches` e guarda o `url` relativo em `photoUrl`. **Vínculo com a captura (migration `catch_media_link`)**: `Catch.mediaId` (`@unique`, FK para `media`, `onDelete: SetNull`). `POST /catches` exige `photoUrl` = `/uploads/<uuid>` de um upload existente (400), do próprio usuário (403) e ainda sem captura (409) — checado em `UploadsService.resolvePhotoForCatch` antes de dar XP; corrida entre duas capturas com a mesma foto cai no `@unique` (P2002 → 409). Capturas antigas/seed ficam com `mediaId` nulo. **Órfãs**: upload sem captura há mais de 24h (`ORPHAN_MAX_AGE_MS`) é apagado por `UploadsService.cleanupOrphans`, chamado no `server.ts` ao subir e de hora em hora (não em `app.ts`, para não rodar nos testes), e por `npm run uploads:cleanup`. Motivo da troca: fotos em disco somem a cada redeploy e não acompanham o backup do banco. Custo: o banco cresce com as fotos — se virar problema, trocar por bucket externo mexendo só no módulo `uploads`.
 3. ~~**Paginação do feed**~~ — **fechada: offset (`?page=&limit=`).** `GET /feed` e `GET /catches/me` aceitam `page`/`limit`; o app usa `useInfiniteQuery` com página de 3. Suficiente para a escala do projeto; migrar para cursor depois é trocar o `skip/take` do `feed.repository`.
 4. ~~**Conjunto de emojis de reação**~~ — **fechado: os 6 do enum** (`LIKE`, `LOVE`, `FIRE`, `WOW`, `CLAP`, `BIG_ONE`). O app tem rótulo/cor para cada um em `src/constants/theme.ts` (`ReactionMeta`).
 5. ~~**Modelagem de `Friendship`**~~ — **fechada: par ordenado (`userAId`/`userBId`)**, como descrito acima. Implementado em `friendships.repository.ts` (`sortPair`).
@@ -302,7 +302,6 @@ Ainda em aberto:
 
 - Itens 7–9 das "Decisões em aberto" (localização/privacidade, regras de `BLOCKED`, edição de `Catch`).
 - Refresh token / expiração de sessão (hoje só access token).
-- Storage de fotos em bucket externo (hoje disco local) para deploy.
 - Estratégia de deploy e infraestrutura de produção.
 - Migrar paginação do feed para cursor, se a base crescer.
 - Revisão das dicas de pesca e do defeso por pescadores (todas as 32 espécies estão com `tipsReviewed: false`).

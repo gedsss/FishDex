@@ -2,6 +2,8 @@ import { AchievementsRepository } from '../achievements/achievements.repository'
 import { AchievementsService } from '../achievements/achievements.service'
 import { ReactionsRepository } from '../reactions/reactions.repository'
 import { SpeciesRepository } from '../species/species.repository'
+import { UploadsRepository } from '../uploads/uploads.repository'
+import { UploadsService } from '../uploads/uploads.service'
 import { UserRepository } from '../users/users.repository'
 import { CatchesController } from './catches.controller'
 import { CatchesRepository } from './catches.repository'
@@ -24,7 +26,8 @@ export function buildCatchesModule() {
     speciesRepository,
     userRepository,
     achievementsService,
-    reactionsRepository
+    reactionsRepository,
+    new UploadsService(new UploadsRepository())
   )
   const catchesController = new CatchesController(catchService)
 

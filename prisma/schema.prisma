@@ -25,6 +25,7 @@ model User {
   catches      Catch[]
   reactions    Reaction[]
   achievements UserAchievement[]
+  media        Media[]
 
   // Ver Friendship: par ordenado (userAId < userBId) garante unicidade da
   // amizade independente de quem adicionou quem.
@@ -91,6 +92,9 @@ model Catch {
   userId     String
   speciesId  String
   photoUrl   String
+  // Foto do upload (tabela media) vinculada a esta captura. Única: a mesma foto
+  // não pode ser usada em duas capturas. Nulo só em capturas antigas/seed.
+  mediaId    String?  @unique
   // Snapshot do XP concedido no momento da captura: se o baseXp da espécie
   // mudar depois, o histórico do usuário não deve ser recalculado.
   xpAwarded  Int
@@ -107,12 +111,37 @@ model Catch {
   // Restrict: não permite apagar uma espécie do catálogo se já existem
   // capturas registradas para ela.
   species Species @relation(fields: [speciesId], references: [id], onDelete: Restrict)
+  media   Media?  @relation(fields: [mediaId], references: [id], onDelete: SetNull)
 
   reactions Reaction[]
 
   @@index([userId, capturedAt])
   @@index([speciesId])
   @@map("catches")
+}
+
+// ---------------------------------------------------------------------------
+// Media (fotos enviadas pelos usuários, guardadas no próprio banco)
+// ---------------------------------------------------------------------------
+
+model Media {
+  id        String   @id @default(uuid())
+  // Dono do arquivo (quem fez o upload).
+  userId    String
+  // Tipo detectado pelos magic bytes do conteúdo, não o declarado pelo cliente.
+  mimeType  String
+  sizeBytes Int
+  data      Bytes
+  createdAt DateTime @default(now())
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Captura que usa esta foto. Sem captura há mais de 24h = órfã (é apagada
+  // pela limpeza periódica, ver uploads.service.ts).
+  catch Catch?
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("media")
 }
 
 // ---------------------------------------------------------------------------

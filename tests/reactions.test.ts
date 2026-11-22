@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { app } from "../app";
-import { registerAndLogin, createTestSpecies } from "./helpers";
+import { registerAndLogin, createTestSpecies, uploadTestPhoto } from "./helpers";
 
 async function createCatch(token: string) {
     const species = await createTestSpecies();
@@ -11,7 +11,7 @@ async function createCatch(token: string) {
         headers: { authorization: `Bearer ${token}` },
         payload: {
             speciesId: species.id,
-            photoUrl: "http://foto.com/1.png",
+            photoUrl: await uploadTestPhoto(token),
             capturedAt: new Date().toISOString(),
         },
     });

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { app } from "../app";
-import { registerAndLogin, createTestSpecies } from "./helpers";
+import { registerAndLogin, createTestSpecies, uploadTestPhoto } from "./helpers";
 
 describe("GET /achievements", () => {
     it("lista o catalogo de conquistas", async () => {
@@ -60,7 +60,7 @@ describe("GET /users/:id/achievements", () => {
             headers: { authorization: `Bearer ${token}` },
             payload: {
                 speciesId: species.id,
-                photoUrl: "http://foto.com/1.png",
+                photoUrl: await uploadTestPhoto(token),
                 capturedAt: new Date().toISOString(),
             },
         });

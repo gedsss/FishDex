@@ -1,8 +1,13 @@
 import { z } from 'zod'
+import { UPLOAD_URL_REGEX } from '../uploads/uploads.service'
 
 export const CreateCatchBodySchema = z.object({
   speciesId: z.string().uuid(),
-  photoUrl: z.string(),
+  // Só aceita a url devolvida por POST /uploads ("/uploads/<uuid>"); dono e
+  // existência são conferidos no service.
+  photoUrl: z
+    .string()
+    .regex(UPLOAD_URL_REGEX, 'deve ser a url devolvida por POST /uploads'),
   capturedAt: z.coerce.date(),
   weightGrams: z.number().positive().optional(),
   lengthCm: z.number().positive().optional(),
