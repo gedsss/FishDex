@@ -202,3 +202,82 @@ Erros de negócio usam as classes de `src/shared/errors.ts` (`NotFoundError`, `C
 ## Integração com o app mobile
 
 O app em `../PROJETO-INTEGRADOR FRONT 2026-2/mobile` consome esta API. Passo a passo de subir os dois juntos (Docker, IP da rede, `.env` do mobile, troubleshooting) em [INTEGRACAO.md](./INTEGRACAO.md).
+
+## Instalar o app no celular (PWA via túnel HTTPS)
+
+O app mobile também roda como **PWA**: dá para instalar pelo navegador do celular ("Instalar app" / "Adicionar à Tela de Início"). Duas regras do navegador mandam em tudo:
+
+- **Só oferece instalar em HTTPS** (ou `localhost`). Pelo IP da rede (`http://192.168...`) no celular não aparece.
+- **Só funciona no build de produção.** Com `npm start` (modo dev) o service worker não é registrado.
+
+E, se o app estiver em HTTPS, a API também precisa estar (senão o navegador bloqueia as chamadas por conteúdo misto). Por isso usamos **dois túneis** do Cloudflare (gratuitos, sem conta): um para a API e um para o app.
+
+```
+Celular abre o app  ──►  túnel do front  ──►  PC :8080  (build web do app)
+App pede os dados   ──►  túnel da API    ──►  PC :3000  ──►  Postgres (Docker :5433)
+```
+
+### Instalação (uma vez só)
+
+```powershell
+winget install --id Cloudflare.cloudflared
+```
+
+Abra um terminal novo depois de instalar. Se o comando `cloudflared` não for reconhecido, use o caminho completo: `& "C:\Program Files (x86)\cloudflared\cloudflared.exe"`.
+
+### Ordem dos comandos (4 terminais)
+
+Cada processo que fica rodando precisa do próprio terminal. **A ordem importa**: o build do app (terminal 3) precisa do endereço do túnel da API (terminal 2).
+
+**Terminal 1 — banco + backend** (com o Docker Desktop aberto):
+
+```powershell
+cd "PROJETO-INTEGRADOR BACK 2026-2"
+docker compose up -d
+npx prisma migrate deploy   # só se o banco foi recriado ou há migration nova
+npx prisma generate         # idem
+npx tsx prisma/seed.ts      # idem (dados demo)
+npm run dev                 # API em localhost:3000
+```
+
+**Terminal 2 — túnel da API:**
+
+```powershell
+cloudflared tunnel --url http://localhost:3000
+```
+
+Na saída aparece um endereço `https://<aleatorio>.trycloudflare.com`. **Copie** — ele vai no próximo passo.
+
+**Terminal 3 — build e servidor do app:**
+
+```powershell
+cd "PROJETO-INTEGRADOR FRONT 2026-2/mobile"
+$env:EXPO_PUBLIC_API_URL = "https://ENDERECO-DA-API.trycloudflare.com"
+$env:EXPO_PUBLIC_USE_MOCKS = "false"
+npx expo export -p web               # gera dist/ com o endereço da API embutido
+npx serve dist --single -l 8080      # porta 8080 (a 3000 é do backend)
+```
+
+As linhas `$env:` valem só para esse terminal e têm prioridade sobre o `.env` do mobile — o arquivo não é alterado.
+
+**Terminal 4 — túnel do app:**
+
+```powershell
+cloudflared tunnel --url http://localhost:8080
+```
+
+O endereço `https://<aleatorio>.trycloudflare.com` que aparecer aqui é o que se abre no celular.
+
+### Instalando no celular
+
+- **Android (Chrome):** menu ⋮ → **Instalar app** (ou "Adicionar à tela inicial").
+- **iPhone (Safari):** Compartilhar → **Adicionar à Tela de Início**.
+
+Login demo: `gedson@fishdex.app` / `pescaria123`.
+
+### Cuidados
+
+- **O PC precisa ficar ligado** com os 4 terminais rodando. Desligou, o app instalado abre mas não carrega dados.
+- **Os endereços dos túneis mudam a cada vez que são reiniciados.** Como o endereço da API fica embutido no build, mudou o túnel da API → refazer o build (terminal 3) e reinstalar o app no celular. Para endereço fixo: túnel nomeado do Cloudflare (precisa de conta e domínio) ou deploy de verdade.
+- **Catálogo com espécies "Especie teste…"**: são sobras do `npm test`. Para apresentar limpo, recrie o banco: `docker compose down -v && docker compose up -d && npx prisma migrate deploy && npx tsx prisma/seed.ts` (apaga todos os dados).
+- **Para desligar:** `Ctrl+C` em cada terminal; `docker compose down` para parar o Postgres.
