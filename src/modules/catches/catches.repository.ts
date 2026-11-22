@@ -10,6 +10,7 @@ export class CatchesRepository {
     userId: string
     speciesId: string
     photoUrl: string
+    mediaId: string
     xpAwarded: number
     capturedAt: Date
     weightGrams?: number
@@ -23,6 +24,7 @@ export class CatchesRepository {
         userId: data.userId,
         speciesId: data.speciesId,
         photoUrl: data.photoUrl,
+        mediaId: data.mediaId,
         xpAwarded: data.xpAwarded,
         capturedAt: data.capturedAt,
         weightGrams: data.weightGrams,

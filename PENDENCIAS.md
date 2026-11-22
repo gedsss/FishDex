@@ -551,7 +551,7 @@ para não serem re-investigados à toa:
 - [ ] 1.1 — `src/config/env.ts` com zod; `JWT_SECRET` forte e obrigatório
 - [ ] 1.2 — Expiração no JWT + refresh token + logout
 - [ ] 2.1 — `GET /users/:id` para de devolver `email` de terceiros
-- [ ] 3.2 — Bloquear SVG (e mimetypes fora da whitelist) no upload
+- [x] 3.2 — Bloquear SVG (e mimetypes fora da whitelist) no upload *(2026-11-22: tipo detectado por magic bytes; fotos no banco, servidas com `nosniff` + CSP)*
 - [ ] 7.1 — Build/start de produção que realmente funciona (ou rodar com `tsx`)
 
 ### Hardening de segurança — 🟠
@@ -562,15 +562,16 @@ para não serem re-investigados à toa:
 - [ ] 2.3 — Regra de visibilidade de capturas/reações aplicada no service
 - [ ] 2.4 — Privacidade das coordenadas GPS
 - [ ] 2.5 — Contrato do `BLOCKED` (aplicar em `catches`/`reactions`, não só feed)
-- [ ] 3.1 / 3.3 — Magic bytes reais no upload; `photoUrl` restrito a `/uploads/...`
+- [x] 3.1 / 3.3 — Magic bytes reais no upload; `photoUrl` restrito a `/uploads/<uuid>` de upload do próprio usuário, não usado em outra captura (`Catch.mediaId` único) *(2026-11-22)*
 - [ ] 4.1 — `@fastify/helmet`
-- [ ] 7.2 — Storage de fotos em bucket externo
+- [x] 7.2 — Storage de fotos fora do disco do servidor *(2026-11-22: fotos no Postgres, tabela `media`; bucket externo só se o banco crescer demais)*
 - [ ] 8.1 — Remover dependência solta `biome`; `npm audit` no CI
 - [ ] 8.2 — Banco de teste isolado (local, CI já está ok)
 
 ### Robustez e qualidade — 🟡
 
-- [ ] 3.4 / 3.5 — Autenticação nas fotos (se privacidade exigir); limpeza de órfãos + bug do `truncated`
+- [x] 3.5 — Limpeza de órfãos (24h, automática de hora em hora + `npm run uploads:cleanup`) + bug do `truncated` *(2026-11-22)*
+- [ ] 3.4 — Autenticação nas fotos (se privacidade exigir)
 - [ ] 4.2 — CORS com allowlist
 - [ ] 4.3 — `errorHandler` não vaza mensagem crua em produção; mapear `P2003`/`P2000`
 - [ ] 4.4 — Remover tratamento de erro divergente do `FriendshipController`

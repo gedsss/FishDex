@@ -3,6 +3,7 @@ import { type FeedCatchDTO, toFeedCatches } from '../../shared/feed-catch'
 import type { AchievementsService } from '../achievements/achievements.service'
 import type { ReactionsRepository } from '../reactions/reactions.repository'
 import type { SpeciesRepository } from '../species/species.repository'
+import type { UploadsService } from '../uploads/uploads.service'
 import type { UserRepository } from '../users/users.repository'
 import type { CatchesRepository } from './catches.repository'
 import { calculateLevel } from './level'
@@ -13,7 +14,8 @@ export class CatchService {
     private speciesRepository: SpeciesRepository,
     private userRepository: UserRepository,
     private achievementsService: AchievementsService,
-    private reactionsRepository: ReactionsRepository
+    private reactionsRepository: ReactionsRepository,
+    private uploadsService: UploadsService
   ) {}
   async create(data: {
     userId: string
@@ -32,10 +34,18 @@ export class CatchService {
       throw new NotFoundError('Especie nao encontrada')
     }
 
+    const mediaId = await this.uploadsService.resolvePhotoForCatch(
+      data.userId,
+      data.photoUrl
+    )
+
     const xpAwarded = species.baseXp
 
+    // mediaId é @unique: se duas capturas tentarem a mesma foto ao mesmo
+    // tempo, a segunda cai no P2002 → 409 (errorHandler) antes de dar XP.
     const newCatch = await this.catchRepository.create({
       ...data,
+      mediaId,
       xpAwarded,
     })
 

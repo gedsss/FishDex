@@ -13,7 +13,7 @@ Contexto completo de produto e decisões de modelagem em [CLAUDE.md](./CLAUDE.md
 - zod (validação)
 - bcrypt (hash de senha)
 - `@fastify/jwt` (autenticação)
-- `@fastify/multipart` + `@fastify/static` (upload e entrega das fotos de captura)
+- `@fastify/multipart` (upload das fotos de captura, guardadas no Postgres) + `@fastify/static` (ilustrações das espécies)
 - Vitest (testes)
 
 ## Rodando localmente
@@ -101,10 +101,10 @@ Todo push e pull request roda automaticamente, via GitHub Actions (`.github/work
 | GET | `/users/:id/achievements` | sim | conquistas desbloqueadas por um usuário |
 | GET | `/species` | não | catálogo de espécies, ordenado por `dexOrder` |
 | GET | `/species/:id` | não | detalhe de uma espécie (com ficha técnica) |
-| POST | `/uploads` | sim | envia a foto da captura (multipart, campo `file`, ≤ 8 MB), retorna `{ url }` |
-| GET | `/uploads/:arquivo` | não | serve a foto enviada (estático) |
+| POST | `/uploads` | sim | envia a foto da captura (multipart, campo `file`, ≤ 8 MB, JPEG/PNG/WebP/HEIC), grava no banco e retorna `{ id, url, mimeType, sizeBytes, createdAt }` |
+| GET | `/uploads/:id` | não | devolve os bytes da foto guardada no banco (`Content-Type` real, cache imutável) |
 | GET | `/illustrations/:arquivo` | não | serve a ilustração SVG da espécie (estático, `public/illustrations/`) |
-| POST | `/catches` | sim | registra uma captura, concede XP, checa conquistas |
+| POST | `/catches` | sim | registra uma captura, concede XP, checa conquistas. `photoUrl` deve ser a `url` de um upload do próprio usuário ainda não usado |
 | GET | `/catches/me` | sim | capturas do usuário logado (enriquecidas); com `?page=&limit=` pagina |
 | GET | `/catches/:id` | sim | detalhe de uma captura (enriquecida) |
 | PUT | `/catches/:catchId/reaction` | sim | reage / troca reação numa captura |
@@ -159,15 +159,27 @@ O catálogo é curado à mão em `prisma/data/species.ts`. `npm run gbif:check` 
 
 Além de `id`, `username`, `email`, `level`, `xp`, `catchesBySpecies`, devolve `avatarUrl`, `handle` (derivado do username), `memberSince` (data de criação) e `avatarTone` (gradiente determinístico).
 
+### Upload de fotos
+
+As fotos ficam na tabela `media` do Postgres (coluna `bytea`), com o dono (`userId`), o tipo e o tamanho. O tipo é detectado pelos *magic bytes* do arquivo — o mimetype declarado pelo cliente é ignorado, então SVG ou um texto renomeado para `.jpg` são recusados com 400. O arquivo é lido inteiro em memória antes de gravar; se passar de 8 MB nada é salvo. A `url` devolvida (`/uploads/<id>`) é o que o app grava em `photoUrl` da captura.
+
+Ao criar a captura, o backend confere a foto e a vincula (`Catch.mediaId`): `photoUrl` fora do formato `/uploads/<uuid>` ou de upload inexistente → 400; foto de outro usuário → 403; foto já usada em outra captura → 409. Nesses casos nenhum XP é concedido.
+
+Fotos órfãs (enviadas e não usadas em captura por mais de 24h) são apagadas automaticamente: ao subir o servidor e de hora em hora. Para rodar manualmente: `npm run uploads:cleanup`.
+
+```bash
+curl -X POST http://localhost:3000/uploads \n  -H "Authorization: Bearer $TOKEN" \n  -F "file=@peixe.jpg"
+```
+
 ### Status de erro
 
 | Status | Quando |
 | --- | --- |
-| 400 | payload inválido (falha de validação zod), upload sem arquivo / não-imagem / grande demais |
+| 400 | payload inválido (falha de validação zod), upload sem arquivo / formato não suportado (inclui SVG) / grande demais |
 | 401 | token ausente/inválido, ou credenciais erradas no login |
-| 403 | tentar aceitar/bloquear um pedido de amizade que você mesmo enviou |
+| 403 | tentar aceitar/bloquear um pedido de amizade que você mesmo enviou; usar foto de outro usuário numa captura |
 | 404 | recurso não encontrado |
-| 409 | conflito (email/username já cadastrado, amizade duplicada, etc.) |
+| 409 | conflito (email/username já cadastrado, amizade duplicada, foto já usada em outra captura, etc.) |
 
 ## Arquitetura
 

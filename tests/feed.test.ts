@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { app } from "../app";
-import { registerAndLogin, createTestSpecies } from "./helpers";
+import { registerAndLogin, createTestSpecies, uploadTestPhoto } from "./helpers";
 
 describe("GET /feed", () => {
     it("retorna 401 sem token", async () => {
@@ -50,7 +50,7 @@ describe("GET /feed", () => {
             headers: { authorization: `Bearer ${userB.token}` },
             payload: {
                 speciesId: species.id,
-                photoUrl: "http://foto.com/1.png",
+                photoUrl: await uploadTestPhoto(userB.token),
                 capturedAt: new Date().toISOString(),
             },
         });

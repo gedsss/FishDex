@@ -31,3 +31,9 @@ export class UnauthorizedError extends DomainError {
     super(message, 401)
   }
 }
+
+export class BadRequestError extends DomainError {
+  constructor(message = 'requisição inválida') {
+    super(message, 400)
+  }
+}
