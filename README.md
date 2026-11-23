@@ -254,11 +254,19 @@ Na saída aparece um endereço `https://<aleatorio>.trycloudflare.com`. **Copie*
 cd "PROJETO-INTEGRADOR FRONT 2026-2/mobile"
 $env:EXPO_PUBLIC_API_URL = "https://ENDERECO-DA-API.trycloudflare.com"
 $env:EXPO_PUBLIC_USE_MOCKS = "false"
-npx expo export -p web               # gera dist/ com o endereço da API embutido
+npx expo export -p web --clear       # gera dist/ com o endereço da API embutido (--clear é obrigatório, ver abaixo)
 npx serve dist --single -l 8080      # porta 8080 (a 3000 é do backend)
 ```
 
 As linhas `$env:` valem só para esse terminal e têm prioridade sobre o `.env` do mobile — o arquivo não é alterado.
+
+**Sempre use `--clear`.** O Metro guarda em cache os arquivos já compilados, e o `EXPO_PUBLIC_API_URL` é embutido no código durante a compilação. Sem `--clear`, o build pode sair com o endereço de um túnel antigo — o app abre, mas o login responde "E-mail ou senha inválidos" (a tela mostra essa mensagem para qualquer falha, inclusive API fora do ar). Para conferir qual endereço foi embutido:
+
+```powershell
+Select-String -Path dist\_expo\static\js\web\*.js -Pattern '[a-z0-9-]+\.trycloudflare\.com' -AllMatches | % { $_.Matches.Value } | Select -Unique
+```
+
+Se o `serve` da porta 8080 já estiver rodando, não precisa reiniciá-lo depois de um novo build — ele serve o `dist/` atualizado.
 
 **Terminal 4 — túnel do app:**
 
@@ -278,6 +286,7 @@ Login demo: `gedson@fishdex.app` / `pescaria123`.
 ### Cuidados
 
 - **O PC precisa ficar ligado** com os 4 terminais rodando. Desligou, o app instalado abre mas não carrega dados.
-- **Os endereços dos túneis mudam a cada vez que são reiniciados.** Como o endereço da API fica embutido no build, mudou o túnel da API → refazer o build (terminal 3) e reinstalar o app no celular. Para endereço fixo: túnel nomeado do Cloudflare (precisa de conta e domínio) ou deploy de verdade.
+- **Os endereços dos túneis mudam a cada vez que são reiniciados.** Como o endereço da API fica embutido no build, mudou o túnel da API → refazer o build (terminal 3, com `--clear`) e reinstalar o app no celular (ou fechar e reabrir/recarregar, para o service worker pegar a versão nova).
+- **API respondendo 500**: geralmente o Docker Desktop está fechado e o Postgres não subiu. Abra o Docker e rode `docker compose up -d`. Para endereço fixo: túnel nomeado do Cloudflare (precisa de conta e domínio) ou deploy de verdade.
 - **Catálogo com espécies "Especie teste…"**: são sobras do `npm test`. Para apresentar limpo, recrie o banco: `docker compose down -v && docker compose up -d && npx prisma migrate deploy && npx tsx prisma/seed.ts` (apaga todos os dados).
 - **Para desligar:** `Ctrl+C` em cada terminal; `docker compose down` para parar o Postgres.
